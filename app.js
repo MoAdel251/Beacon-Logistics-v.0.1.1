@@ -5,10 +5,9 @@ const Store = {
     return {
       users: [
         { id: 'u_admin', username: 'MH', password: 'Beacon2025', name: 'Mahmoud El Hadary' },
-        { id: 'u_admin2', username: 'admin1', password: 'Beacon2025', name: 'Admin One' },
-        { id: 'u_admin3', username: 'admin2', password: 'Beacon2025', name: 'Admin Two' },
-        { id: 'u_user1', username: 'user1', password: 'Beacon2025', name: 'User One' },
-        { id: 'u_user2', username: 'user2', password: 'Beacon2025', name: 'User Two' }
+        { id: 'u_mo', username: 'MO', password: 'Beacon2025', name: 'MO User' },
+        { id: 'u_mk', username: 'MK', password: 'Beacon2025', name: 'MK User' },
+        { id: 'u_am', username: 'AM', password: 'Beacon2025', name: 'AM Admin' },
       ],
       session: null,
       customers: [], shipments: [], drivers: [], invoices: [], clearances: [], deposits: [], driverDeposits: []
@@ -37,7 +36,7 @@ function demoFill() { // quick demo seed data (with shipment extended fields)
   state.shipments = [{
     id: uid('s'),
     ref: 'EG-2025-001',
-    customerId: state.customers[0].id,
+    customerIds: [state.customers[0].id, state.customers[1].id],
     origin: 'Port Said, Egypt',
     destination: 'Hamburg, Germany',
     bol: 'BOL-998877',
@@ -104,7 +103,7 @@ function renderShipments(root) {
   // Form for adding shipment with Origin, Destination, BOL, Containers, Shipping Line
   root.innerHTML = `<div class="card"><h2>Shipments</h2>
         <label>Reference</label><input id="s_ref" placeholder="Ref no (e.g., SH-2025-001)"/>
-        <label>Customer</label><select id="s_customer">${state.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select>
+        <label>Customers</label><select id="s_customer" multiple style="min-height:60px">${state.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select>
         <div class="row">
           <div><label>Origin</label><input id="s_origin" placeholder="Origin (city/port)"/></div>
           <div><label>Destination</label><input id="s_destination" placeholder="Destination (city/port)"/></div>
@@ -125,7 +124,8 @@ function renderShipments(root) {
 
 function addShipment() {
   const ref = document.getElementById('s_ref').value.trim();
-  const customerId = document.getElementById('s_customer').value;
+  const customerSelect = document.getElementById('s_customer');
+  const customerIds = Array.from(customerSelect.selectedOptions).map(opt => opt.value);
   const origin = document.getElementById('s_origin').value.trim();
   const destination = document.getElementById('s_destination').value.trim();
   const bol = document.getElementById('s_bol').value.trim();
@@ -133,11 +133,13 @@ function addShipment() {
   const containers = document.getElementById('s_containers').value.trim();
   const status = document.getElementById('s_status').value;
   if (!ref) return alert('Reference required');
+  if (customerIds.length === 0) return alert('At least one customer required');
+  if (customerIds.length > 20) return alert('Maximum 20 customers per shipment');
   // store shipment with new fields
   state.shipments.push({
     id: uid('sh'),
     ref,
-    customerId,
+    customerIds,
     origin,
     destination,
     bol,
@@ -148,6 +150,7 @@ function addShipment() {
   saveState();
   // clear inputs
   document.getElementById('s_ref').value = '';
+  customerSelect.selectedIndex = -1;
   document.getElementById('s_origin').value = '';
   document.getElementById('s_destination').value = '';
   document.getElementById('s_bol').value = '';
@@ -158,12 +161,12 @@ function addShipment() {
 function renderShipList() {
   const el = document.getElementById('shipList');
   if (!el) return;
-  // Table headers: Ref | Customer | Origin | Destination | B/L | Containers | Shipping Line | Status | Actions
+  // Table headers: Ref | Customers | Origin | Destination | B/L | Containers | Shipping Line | Status | Actions
   el.innerHTML = `<table><thead><tr>
-        <th>Ref</th><th>Customer</th><th>Origin</th><th>Destination</th><th>B/L No.</th><th>Containers</th><th>Shipping Line</th><th>Status</th><th>Actions</th>
+        <th>Ref</th><th>Customers</th><th>Origin</th><th>Destination</th><th>B/L No.</th><th>Containers</th><th>Shipping Line</th><th>Status</th><th>Actions</th>
       </tr></thead><tbody>${state.shipments.map(s => `<tr>
         <td>${s.ref}</td>
-        <td>${(state.customers.find(c => c.id === s.customerId) || {}).name || '-'}</td>
+        <td>${(s.customerIds || []).map(id => (state.customers.find(c => c.id === id) || {}).name || '-').join(', ')}</td>
         <td>${escapeHtml(s.origin || '-')}</td>
         <td>${escapeHtml(s.destination || '-')}</td>
         <td>${escapeHtml(s.bol || '-')}</td>
@@ -223,7 +226,7 @@ function renderEditForm(type, item) {
     // include the new shipment fields
     return `<h3>Edit Shipment</h3>
           <label>Reference</label><input id="edit_ref" value="${escapeHtml(item.ref || '')}" />
-          <label>Customer</label><select id="edit_customer">${state.customers.map(c => `<option value="${c.id}" ${c.id === item.customerId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}</select>
+          <label>Customers</label><select id="edit_customer" multiple style="min-height:60px">${state.customers.map(c => `<option value="${c.id}" ${(item.customerIds || []).includes(c.id) ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}</select>
           <div class="row">
             <div><label>Origin</label><input id="edit_origin" value="${escapeHtml(item.origin || '')}" /></div>
             <div><label>Destination</label><input id="edit_destination" value="${escapeHtml(item.destination || '')}" /></div>
@@ -258,7 +261,7 @@ function renderEditForm(type, item) {
 
 function saveEdit(type, id) {
   if (type === 'customer') { const name = document.getElementById('edit_name').value.trim(); const contact = document.getElementById('edit_contact').value.trim(); const idx = state.customers.findIndex(x => x.id === id); if (idx > -1) { state.customers[idx].name = name; state.customers[idx].contact = contact; saveState(); closeModal(); } }
-  if (type === 'shipment') { const ref = document.getElementById('edit_ref').value.trim(); const customerId = document.getElementById('edit_customer').value; const origin = document.getElementById('edit_origin').value.trim(); const destination = document.getElementById('edit_destination').value.trim(); const bol = document.getElementById('edit_bol').value.trim(); const line = document.getElementById('edit_line').value.trim(); const containers = document.getElementById('edit_containers').value.trim(); const status = document.getElementById('edit_status').value; const idx = state.shipments.findIndex(x => x.id === id); if (idx > -1) { state.shipments[idx].ref = ref; state.shipments[idx].customerId = customerId; state.shipments[idx].origin = origin; state.shipments[idx].destination = destination; state.shipments[idx].bol = bol; state.shipments[idx].shippingLine = line; state.shipments[idx].containers = containers; state.shipments[idx].status = status; saveState(); closeModal(); } }
+  if (type === 'shipment') { const ref = document.getElementById('edit_ref').value.trim(); const customerSelect = document.getElementById('edit_customer'); const customerIds = Array.from(customerSelect.selectedOptions).map(opt => opt.value); const origin = document.getElementById('edit_origin').value.trim(); const destination = document.getElementById('edit_destination').value.trim(); const bol = document.getElementById('edit_bol').value.trim(); const line = document.getElementById('edit_line').value.trim(); const containers = document.getElementById('edit_containers').value.trim(); const status = document.getElementById('edit_status').value; const idx = state.shipments.findIndex(x => x.id === id); if (idx > -1) { if (customerIds.length === 0) return alert('At least one customer required'); if (customerIds.length > 20) return alert('Maximum 20 customers per shipment'); state.shipments[idx].ref = ref; state.shipments[idx].customerIds = customerIds; state.shipments[idx].origin = origin; state.shipments[idx].destination = destination; state.shipments[idx].bol = bol; state.shipments[idx].shippingLine = line; state.shipments[idx].containers = containers; state.shipments[idx].status = status; saveState(); closeModal(); } }
   if (type === 'driver') { const name = document.getElementById('edit_name').value.trim(); const phone = document.getElementById('edit_phone').value.trim(); const cost = parseFloat(document.getElementById('edit_cost').value) || 0; const currency = document.getElementById('edit_currency').value; const idx = state.drivers.findIndex(x => x.id === id); if (idx > -1) { state.drivers[idx].name = name; state.drivers[idx].phone = phone; const prevDeposited = Number(state.drivers[idx].deposited || 0); state.drivers[idx].cost = cost; state.drivers[idx].currency = currency; state.drivers[idx].deposited = Math.min(prevDeposited, cost); saveState(); closeModal(); } }
   if (type === 'invoice') { const no = document.getElementById('edit_no').value.trim(); const customerId = document.getElementById('edit_customer').value; const amount = parseFloat(document.getElementById('edit_amount').value); const currency = document.getElementById('edit_currency').value; const idx = state.invoices.findIndex(x => x.id === id); if (idx > -1) { state.invoices[idx].no = no; state.invoices[idx].customerId = customerId; state.invoices[idx].amount = amount; state.invoices[idx].currency = currency; saveState(); closeModal(); } }
   if (type === 'clearance') { const customerId = document.getElementById('edit_customer').value; const cost = parseFloat(document.getElementById('edit_cost').value); const currency = document.getElementById('edit_currency').value; const idx = state.clearances.findIndex(x => x.id === id); if (idx > -1) { state.clearances[idx].customerId = customerId; state.clearances[idx].cost = cost; state.clearances[idx].currency = currency; state.clearances[idx].deposited = Math.min(Number(state.clearances[idx].deposited || 0), Number(cost)); saveState(); closeModal(); } }
@@ -270,7 +273,8 @@ function deleteRecord(type, id) {
   if (!confirm('Delete this record?')) return;
   if (type === 'customer') {
     state.customers = state.customers.filter(x => x.id !== id); // also remove relations
-    state.shipments = state.shipments.filter(s => s.customerId !== id); state.invoices = state.invoices.filter(i => i.customerId !== id); // remove clearances & related deposits
+    state.shipments = state.shipments.map(s => ({ ...s, customerIds: (s.customerIds || []).filter(cid => cid !== id) })).filter(s => s.customerIds.length > 0); // remove customer from shipments, and remove shipment if no customers left
+    state.invoices = state.invoices.filter(i => i.customerId !== id); // remove clearances & related deposits
     const removedClearances = state.clearances.filter(c => c.customerId === id).map(c => c.id);
     state.deposits = state.deposits.filter(d => !removedClearances.includes(d.clearanceId));
     state.clearances = state.clearances.filter(c => c.customerId !== id);
@@ -317,4 +321,14 @@ function resetUserPasswords() { if (confirm('Reset all user passwords to default
 function resetUsers() { if (confirm('Reset users to default? This will remove all added users and reset passwords.')) { state.users = Store.defaultData().users; saveState(); } }
 
 // ---------- Init ----------
-(function init() { if (!state.session) openAuth(); else closeAuth(); renderNav(); renderCurrentView(); updateUserChip(); const modal = document.getElementById('editModal'); modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); }); })();
+(function init() {
+  // Migrate old shipments with customerId to customerIds
+  state.shipments = state.shipments.map(s => {
+    if (s.customerId && !s.customerIds) {
+      s.customerIds = [s.customerId];
+      delete s.customerId;
+    }
+    return s;
+  });
+  if (!state.session) openAuth(); else closeAuth(); renderNav(); renderCurrentView(); updateUserChip(); const modal = document.getElementById('editModal'); modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+})();
