@@ -7,7 +7,7 @@ const Store = {
         { id: 'u_admin', username: 'MH', password: 'Beacon2025', name: 'Mahmoud El Hadary' },
         { id: 'u_admin', username: 'MO', password: 'Beacon2025', name: 'Mohamed Adel' },
         { id: 'u_admin', username: 'MK', password: 'Beacon2025', name: 'Mahmoud Kotb' },
-        { id: 'u_admin', username: 'AM', password: 'Beacon2025', name: 'Ahmed Makhlouf' },
+        { id: 'u_admin', username: 'AM', password: 'Beacon2025', name: 'Ahmed Makhlouf' }
       ],
       session: null,
       customers: [], shipments: [], drivers: [], invoices: [], clearances: [], deposits: [], driverDeposits: []
@@ -331,5 +331,4 @@ function resetUsers() { if (confirm('Reset users to default? This will remove al
     return s;
   });
   if (!state.session) openAuth(); else closeAuth(); renderNav(); renderCurrentView(); updateUserChip(); const modal = document.getElementById('editModal'); modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
 })();
