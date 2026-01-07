@@ -1,3 +1,6 @@
+import { neon } from '@netlify/neon';
+const sql = neon(); // automatically uses env NETLIFY_DATABASE_URL
+const [post] = await sql`SELECT * FROM posts WHERE id = ${postId}`;
 // ---------- Storage & Helpers ----------
 const Store = {
   key: 'lc_crm_v1',
