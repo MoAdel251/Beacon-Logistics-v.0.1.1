@@ -7,6 +7,7 @@ const Store = {
         { id: 'u_admin', username: 'MH', password: 'Beacon2025', name: 'Mahmoud El Hadary' },
         { id: 'u_admin', username: 'MO', password: 'Beacon2025', name: 'Mohamed Adel' },
         { id: 'u_admin', username: 'MK', password: 'Beacon2025', name: 'Mahmoud Kotb' },
+        { id: 'u_admin', username: 'MS', password: 'Beacon2025', name: 'Mohamed Samir' },
         { id: 'u_admin', username: 'AM', password: 'Beacon2025', name: 'Ahmed Makhlouf' }
       ],
       session: null,
